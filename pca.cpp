@@ -1,14 +1,10 @@
-#include <iostream>
 #include <fstream>
-#include <string>
 #include <sstream>
 #include <set>
 #include <map>
 #include <assert.h>
 #include<bits/stdc++.h>
-#include <stdio.h>
-#include <stdlib.h>
-
+#include <chrono>
 #include "tnt_array1d.h"
 #include "tnt_array2d.h"
 
@@ -23,6 +19,7 @@ namespace PCA {
 	bool debug = false;
 	
 	void load_data_from_file(Array2D<double>& d) {
+		vector<vector<double>> data(20000,vector<double>(16));
 		ifstream inputFile("eegData.csv");
         string line;
 		string number;
@@ -38,17 +35,28 @@ namespace PCA {
 				while (rowDataStream.good()) {
 					getline(rowDataStream,number, ',');
 					if (!number.empty()) {
-						double v = 0;
-						v=std::stod(number);
-						d[r][col] = v;
+						double v=0.0;
+						v=stod(number);
+						//row.push_back(v);
+						data[r][col]=v;
 					}
 					col += 1;
+					if(col==16){
+						break;
+					}
 				}
 				r += 1;
+				if(r==20000){
+					break;
+				}
             }
             inputFile.close();
         }
-		cout<<r<<endl;
+		for(int i=0;i<20000;i++){
+			for(int j=0;j<16;j++){
+				d[i][j] =data[i][j];
+			}
+		}
 	}
 	
 	void adjust_data(Array2D<double>& d, Array1D<double>& means) {
@@ -133,11 +141,11 @@ namespace PCA {
 }
 
 int main() {
+	chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 	using namespace PCA;
 	
     const int row = 20000;
     const int col = 16;
-
     Array2D<double> d(row, col);
     load_data_from_file(d);
     Array1D<double> means(col);
@@ -163,14 +171,23 @@ int main() {
 	// Reconstruct the adjusted data from the projected data
 	Array2D<double> final_data(row, col);
 	PCA::multiply(projected_data, eigenvector, final_data);
+	vector<vector<double>> result;
 	ofstream outputFile("Result.csv");
 	if (outputFile.is_open())
 	{
 		for (int i=0; i<20000; ++i)
 		{
 			outputFile << final_data[i][0] << "," << final_data[i][1] << endl;
+			result.push_back({final_data[i][0],final_data[i][1]});
 		}
 		outputFile.close();
 	}
-	cout<<"Done"<<endl;
+	for(int i=0;i<5;i++){
+		for(int j=0;j<2;j++){
+			cout<<result[i][j]<<"  ";
+		}
+		cout<<endl;
+	}
+	chrono::steady_clock::time_point end=chrono::steady_clock::now();
+	cout<<"Time difference = "<<chrono::duration_cast<chrono::microseconds>(end - begin).count()<<"[micro seconds]"<<endl;
 }
